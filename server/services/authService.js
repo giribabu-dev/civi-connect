@@ -69,4 +69,30 @@ const sendOtp = async (res, email) => {
     }
 };
 
-module.exports = { sendOtp };
+const verifyOtp = async (res, email, otp) => {
+    try {
+
+        const isUserExists = await User.findOne({ email });
+
+        if (!isUserExists) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        else if (!isUserExists.otp) {
+            return res.status(404).json({ message: "OTP not found!, Please send an OTP" });
+        }
+
+        const currentTimeStamp = parseInt(new Date().getTime() / 1000);
+        if (currentTimeStamp > isUserExists.otpExpiry) {
+            return res.status(410).json({ message: "OTP expired, Please send an OTP" });
+        }
+
+        if(isUserExists.otp !== otp){
+            return res.status(400).json({message: "Invalid OTP"})
+        }
+    }
+    catch (error) {
+
+    }
+};
+
+module.exports = { sendOtp, verifyOtp };
