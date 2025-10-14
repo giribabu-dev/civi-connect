@@ -1,6 +1,8 @@
-const { User } = require("../models/User");
 const nodemailer = require("nodemailer");
 const dotenv = require("dotenv");
+
+const { User } = require("../models/User");
+const { generateToken } = require("./jwtService");
 
 dotenv.config();
 
@@ -86,12 +88,25 @@ const verifyOtp = async (res, email, otp) => {
             return res.status(410).json({ message: "OTP expired, Please send an OTP" });
         }
 
-        if(isUserExists.otp !== otp){
-            return res.status(400).json({message: "Invalid OTP"})
+        if (isUserExists.otp !== otp) {
+            return res.status(400).json({ message: "Invalid OTP" })
+        }
+
+        /* 
+            Valid OTP:
+            1. Delete OTP and OTP Expiry from database
+            2. Generate JWT with the user details
+         */
+
+        await User.updateOne({ _id: isUserExists._id }, { $unset: { otp: "", otpExpiry: "" } });
+
+        const token = generateToken({ id: isUserExists._id, role: isUserExists.role });
+        if (token) {
+            return res.status(200).json({ message: "Login successful", token })
         }
     }
     catch (error) {
-
+        return res.status(500).json({ message: error.message });
     }
 };
 
